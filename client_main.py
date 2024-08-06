@@ -6,32 +6,53 @@ import shutil
 
 
 def start_tcp_client_process():
-    processing_command = ['taskset', '-c', '1', 'python3', 'tcp_client.py']
+    processing_command = ['taskset', '-c', '0', 'python3', 'tcp_client.py']
     process = subprocess.Popen(processing_command)
     time.sleep(0.1)
     return process
 
 
 def start_camera_process():
-    processing_command = ['taskset', '-c', '0', 'python3', 'camera_capture.py']
-    process = subprocess.Popen(processing_command)
+    ffmpeg_cmd = [  
+        'ffmpeg',
+        '-f', 'V4L2',  
+        '-framerate', '30',  
+        '-video_size', '640x480',  
+        '-i', '/dev/video0',  
+        '-bufsize', '3000k',  
+        '-vcodec', 'libx264',  
+        '-an',  
+        '-preset:v', 'ultrafast',  
+        '-tune:v', 'zerolatency',  
+        '-g', '30',  
+        '-maxrate', '3000k',  
+        '-r', '30',  # 注意这里和最后的-r 1可能有冲突，通常用于输出帧率的-r应该只出现一次  
+        '-crf', '30',  
+        '-f', 'flv',  
+        'rtmp://106.52.216.25/stream/wei',  
+        '-fflags', 'nobuffer',  
+        '-update', '1',  # 这个参数在ffmpeg的上下文中不是标准参数，可能是误加或特定用途，这里注释掉  
+        '-y',   
+        '-r', '1',   
+        '-f', 'image2', 'out.jpg',  # 如果需要输出图片，应该单独执行这条ffmpeg命令  
+    ]
+    process = subprocess.Popen(ffmpeg_cmd)
     time.sleep(0.1)
     return process
 
 
 def start_posture_process():
-    processing_command = ['taskset', '-c', '1', 'python3', 'posture_recognition.py']
+    processing_command = ['taskset', '-c', '1', 'sh', '/DEngine/run.sh', 'posture_recognition.py']
     process = subprocess.Popen(processing_command)
     time.sleep(0.1)
     return process
 
 
 def start_led_process():
-    processing_command = ['taskset', '-c', '0', 'python3', 'led.py']  # Assuming you want to run on core 2
+    processing_command = ['taskset', '-c', '0', 'python3', 'led.py']  
     process = subprocess.Popen(processing_command)
     time.sleep(0.1)
     return process
-
 
 def stop_process(process):
     process.send_signal(signal.SIGINT)
@@ -93,6 +114,7 @@ if __name__ == '__main__':
             time.sleep(1)
 
     except KeyboardInterrupt:
+        pass
         if tcp_client_process is not None:
             stop_process(tcp_client_process)
         if camera_capture_process is not None:

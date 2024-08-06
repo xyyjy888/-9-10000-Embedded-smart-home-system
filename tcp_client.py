@@ -1,6 +1,7 @@
 import socket
 import sensor
 import os
+import time
 
 pipe_posture_path = r'posture'
 
@@ -40,6 +41,7 @@ if __name__ == "__main__":
 
 
     client = 0
+    last_played_time = time.time()
 
     while True:
         ser = sensor.UART_Init()  # 传感器通讯初始化, 返回串口变量
@@ -47,18 +49,24 @@ if __name__ == "__main__":
 
         # 读取管道数据
         while True:
+            # time.sleep(0.1)
             # 读取管道数据
             pos_result = read_posture_from_pipe()
+            print('串口读取推理数据', pos_result)
             # 通过串口读取传感器数据
             sensor_result = sensor.UART_get_sensor(ser)
+            print('串口读取传感器数据', sensor_result)
             if sensor_result != -1:  # 读取到的数据正常
-                if sensor_result[12] == '0':
-                    os.system('sudo mpg123 fire.mp3')
                 try:
-                    print('客户端发送数据：' + (sensor_result.decode() + 'P:' + pos_result))
-                    client_send(sensor_result.decode() + 'P:' + pos_result)
+                    print('客户端发送数据：' + (sensor_result.decode() + pos_result))
+                    client_send(sensor_result.decode() + pos_result)
                 except:
                     client_tcp_deinit()
                     break
+                # print('火灾数据 : ', sensor_result[12])
+                if (sensor_result[12] == '0' or sensor_result[12] == 48) and time.time() - last_played_time > 4:
+                    print('播放火灾音频')
+                    os.system('mpg123 fire.mp3')
+                    last_played_time = time.time()
 
         print('向服务器发送消息出错')

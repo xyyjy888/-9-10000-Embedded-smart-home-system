@@ -16,10 +16,6 @@ def UART_Init():
     except serial.SerialException as e:
         ser = -1
         print(f"Serial error: {e}")
-    # finally:
-    #     if ser.isOpen():
-    #         ser.close()
-    #         print("Serial port closed.")
     return ser
 
 

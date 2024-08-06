@@ -89,9 +89,13 @@ if __name__ == "__main__":
                 pwm_duty = (160 - light_ad_value) / 60
             # 若占空比改变
             if pwm_duty != last_pwm_duty:
-                os.write(fd_duty.fileno(), bytes(str(int(period * pwm_duty)), 'utf-8'))
-                last_pwm_duty = pwm_duty
-                time.sleep(1)
+                if pwm_duty > last_pwm_duty:
+                    last_pwm_duty += 0.01
+                if pwm_duty < last_pwm_duty:
+                    last_pwm_duty -= 0.01
+                os.write(fd_duty.fileno(), bytes(str(int(period * last_pwm_duty)), 'utf-8'))
+                # last_pwm_duty = pwm_duty
+                time.sleep(0.05)
 
     except KeyboardInterrupt:
         # 关闭总线
